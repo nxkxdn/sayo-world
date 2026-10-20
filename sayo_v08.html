@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#e5dfe6">
+<title>SAYO · Hair Layers v0.8</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#e5dfe6;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;touch-action:none}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#top{position:absolute;top:env(safe-area-inset-top,12px);left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.pill{background:#ffffffdf;border:1px solid #ffffff;border-radius:15px;padding:10px 12px;color:#24212a;font-size:12px;line-height:1.4;box-shadow:0 4px 16px #2d233014}
+.pill b{font-size:13px;letter-spacing:.035em}
+#joy{position:absolute;left:28px;bottom:calc(env(safe-area-inset-bottom,0px) + 35px);width:118px;height:118px;border:1px solid #b4a7b8;border-radius:50%;background:#ffffff35;touch-action:none}
+#nub{position:absolute;width:46px;height:46px;left:35px;top:35px;border-radius:50%;background:#d8cbd9e8;border:1px solid #9d8fa2;box-shadow:0 2px 10px #0001}
+.control{position:absolute;right:14px;border:1px solid #cfc4d1;background:#ffffffdf;border-radius:14px;padding:10px 12px;color:#3c3440;font-size:12px;min-width:124px;text-align:center}
+#mode{bottom:calc(env(safe-area-inset-bottom,0px) + 35px)}
+#motion{bottom:calc(env(safe-area-inset-bottom,0px) + 86px)}
+#hair{bottom:calc(env(safe-area-inset-bottom,0px) + 137px)}
+#hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 8px);background:#ffffffd9;border:1px solid #d8ceda;border-radius:14px;padding:7px 10px;color:#4c4350;font-size:10px;white-space:nowrap;pointer-events:none}
+#status{position:absolute;top:83px;left:50%;transform:translateX(-50%);padding:5px 9px;border-radius:20px;background:#ffffffa8;color:#65586a;font-size:10px;white-space:nowrap;pointer-events:none}
+button:active{background:#fff}
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="top">
+ <div class="pill"><b>SAYO · HAIR LAYERS v0.8</b><br>원화 픽셀 기반 · 독립 PNG 파츠 21개</div>
+ <div class="pill" style="text-align:right">왼쪽 패드: 이동<br>머리카락 레이어: ON/OFF</div>
+</div>
+<div id="status">머리 뿌리 · 중간 · 끝 가닥별 미세 흔들림</div>
+<div id="joy"><div id="nub"></div></div>
+<button class="control" id="mode">걷기 모션: ON</button>
+<button class="control" id="motion">대기 호흡: ON</button>
+<button class="control" id="hair">머리 파츠: ON</button>
+<div id="hint">원화 보존형 2.5D · 본격 리깅 전 머리 파츠 시험판</div>
+<script>
+const c=document.querySelector('#view'),ctx=c.getContext('2d',{alpha:false});
+const art=new Image();art.src='sayo_art.png';
+const rawParts=[{"name":"hair_01_crown","file":"hair_01_crown.png","label":"정수리 윗머리","x":437,"y":4,"width":167,"height":146,"pivot":[460,90],"amp":0.0028,"freq":1.0,"phase":0.3,"pixels":6535},{"name":"hair_02_bangs","file":"hair_02_bangs.png","label":"앞머리 메인","x":385,"y":15,"width":166,"height":233,"pivot":[460,105],"amp":0.0014,"freq":1.15,"phase":1.4,"pixels":25083},{"name":"hair_03_left_side","file":"hair_03_left_side.png","label":"왼쪽 옆머리 가닥","x":322,"y":203,"width":72,"height":278,"pivot":[360,210],"amp":0.0035,"freq":0.85,"phase":2.1,"pixels":3663},{"name":"hair_04L_1","file":"hair_04L_1.png","label":"앞가닥 L · 뿌리","x":387,"y":93,"width":62,"height":260,"pivot":[407,95],"amp":0.0038,"freq":1.35,"phase":0.5,"pixels":3570},{"name":"hair_04L_2","file":"hair_04L_2.png","label":"앞가닥 L · 중간","x":413,"y":335,"width":59,"height":203,"pivot":[437,338],"amp":0.00589,"freq":1.4700000000000002,"phase":1.4,"pixels":4509},{"name":"hair_04R_1","file":"hair_04R_1.png","label":"앞가닥 R · 뿌리","x":507,"y":89,"width":67,"height":264,"pivot":[528,90],"amp":0.0035,"freq":1.35,"phase":2.0,"pixels":4713},{"name":"hair_04R_2","file":"hair_04R_2.png","label":"앞가닥 R · 중간","x":540,"y":335,"width":47,"height":178,"pivot":[561,338],"amp":0.005425,"freq":1.4700000000000002,"phase":2.9,"pixels":1388},{"name":"hair_L_outer_1","file":"hair_L_outer_1.png","label":"L_outer 긴 머리 · 뿌리","x":332,"y":291,"width":77,"height":184,"pivot":[397,290],"amp":0.003,"freq":0.8,"phase":0.9,"pixels":1240},{"name":"hair_L_outer_2","file":"hair_L_outer_2.png","label":"L_outer 긴 머리 · 중간","x":229,"y":452,"width":119,"height":186,"pivot":[330,455],"amp":0.009,"freq":1.02,"phase":1.7000000000000002,"pixels":777},{"name":"hair_L_outer_3","file":"hair_L_outer_3.png","label":"L_outer 긴 머리 · 끝","x":177,"y":615,"width":79,"height":180,"pivot":[245,618],"amp":0.014,"freq":1.24,"phase":2.5,"pixels":1403},{"name":"hair_L_inner_1","file":"hair_L_inner_1.png","label":"L_inner 긴 머리 · 뿌리","x":350,"y":305,"width":61,"height":166,"pivot":[410,294],"amp":0.0025,"freq":0.8,"phase":1.9,"pixels":1890},{"name":"hair_L_inner_2","file":"hair_L_inner_2.png","label":"L_inner 긴 머리 · 중간","x":300,"y":448,"width":77,"height":185,"pivot":[355,451],"amp":0.007,"freq":1.02,"phase":2.7,"pixels":1983},{"name":"hair_L_inner_3","file":"hair_L_inner_3.png","label":"L_inner 긴 머리 · 끝","x":281,"y":610,"width":49,"height":200,"pivot":[306,613],"amp":0.011,"freq":1.24,"phase":3.5,"pixels":1366},{"name":"hair_R_outer_1","file":"hair_R_outer_1.png","label":"R_outer 긴 머리 · 뿌리","x":613,"y":261,"width":106,"height":189,"pivot":[616,260],"amp":0.003,"freq":0.8,"phase":0.4,"pixels":2544},{"name":"hair_R_outer_2","file":"hair_R_outer_2.png","label":"R_outer 긴 머리 · 중간","x":679,"y":427,"width":123,"height":191,"pivot":[705,430],"amp":0.009,"freq":1.02,"phase":1.2000000000000002,"pixels":5195},{"name":"hair_R_outer_3","file":"hair_R_outer_3.png","label":"R_outer 긴 머리 · 끝","x":757,"y":595,"width":89,"height":193,"pivot":[790,598],"amp":0.014,"freq":1.24,"phase":2.0,"pixels":3594},{"name":"hair_R_inner_1","file":"hair_R_inner_1.png","label":"R_inner 긴 머리 · 뿌리","x":602,"y":227,"width":80,"height":191,"pivot":[605,225],"amp":0.0025,"freq":0.8,"phase":1.4,"pixels":3375},{"name":"hair_R_inner_2","file":"hair_R_inner_2.png","label":"R_inner 긴 머리 · 중간","x":643,"y":395,"width":88,"height":203,"pivot":[660,398],"amp":0.007,"freq":1.02,"phase":2.2,"pixels":4484},{"name":"hair_R_inner_3","file":"hair_R_inner_3.png","label":"R_inner 긴 머리 · 끝","x":697,"y":575,"width":38,"height":199,"pivot":[711,578],"amp":0.011,"freq":1.24,"phase":3.0,"pixels":738},{"name":"hair_11_left_flyaway","file":"hair_11_left_flyaway.png","label":"왼쪽 잔머리","x":316,"y":143,"width":48,"height":133,"pivot":[346,200],"amp":0.01,"freq":1.7,"phase":0.7,"pixels":483},{"name":"hair_12_right_flyaway","file":"hair_12_right_flyaway.png","label":"오른쪽 잔머리","x":607,"y":140,"width":74,"height":160,"pivot":[649,229],"amp":0.009,"freq":1.6,"phase":2.5,"pixels":2844}];
+const layers=rawParts.map(p=>{const img=new Image();img.src=p.file;return {...p,img};});
+const layerRank=n=>n==='hair_02_bangs'?99:n==='hair_01_crown'?30:n==='hair_03_left_side'?20:n.includes('flyaway')?80:n.includes('_L_outer')?10:n.includes('_L_inner')?12:n.includes('_R_outer')?11:n.includes('_R_inner')?13:n.includes('hair_04L')?60:n.includes('hair_04R')?61:40;
+layers.sort((a,b)=>layerRank(a.name)-layerRank(b.name));
+let W=0,H=0,dpr=1,px=0,pz=0,yaw=0,joyX=0,joyY=0,walk=true,idle=true,hairOn=true,t=0,drag=null,lastX=0,lastY=0,movePhase=0,vel=0,camTilt=0;
+function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+function drawGrid(){let horizon=H*.39;ctx.fillStyle='#e2dbe3';ctx.fillRect(0,0,W,horizon);ctx.fillStyle='#fff';ctx.fillRect(0,horizon,W,H-horizon);for(let i=0;i<22;i++){let q=i/21;let y=horizon+(H-horizon)*q*q;line(0,y,W,y,'#e7e2e8',1)}for(let i=-14;i<=14;i++){let bottom=W/2+i*W/14;let top=W/2+i*W*.025;let curve=Math.sin(yaw*.25)*W*.045;line(top+curve,horizon,bottom+px*4,H,'#e8e3e9',1)}}
+function drawHairLayer(layer,moving,t){
+  if(!layer.img.complete||!layer.img.naturalWidth)return;
+  const bobAmp=moving?1.25:.72;
+  const wave=Math.sin(t*layer.freq+layer.phase);
+  const secondary=Math.sin(t*layer.freq*.55+layer.phase*1.7);
+  const angle=hairOn ? wave*layer.amp*(moving?1.35:1) : 0;
+  const sway=hairOn ? secondary*(layer.name.includes('outer')?.75:.34) : 0;
+  ctx.save();
+  ctx.globalAlpha=.84;
+  ctx.translate(layer.pivot[0]+sway,layer.pivot[1]);
+  ctx.rotate(angle);
+  ctx.translate(-layer.pivot[0],-layer.pivot[1]);
+  ctx.drawImage(layer.img,layer.x,layer.y);
+  ctx.restore();
+}
+function draw(){t+=.016;ctx.clearRect(0,0,W,H);drawGrid();
+ const moving=Math.hypot(joyX,joyY)>.1&&walk;vel+=((moving?1:0)-vel)*.08;movePhase+=moving?.20:.035;
+ let scale=1/(1+Math.max(-2,Math.min(8,pz))*.035);let groundX=W*.5+px*W*.055;let groundY=H*.73-pz*H*.025;
+ let charH=Math.min(H*.61,W*.94)*scale;let charW=charH*(art.naturalWidth/art.naturalHeight);
+ let bob,sway,breath,squash;
+ if(moving){bob=Math.abs(Math.sin(movePhase*1.9))*5.2;sway=Math.sin(movePhase)*.018;squash=1-Math.abs(Math.sin(movePhase*1.9))*.012}
+ else{bob=idle?Math.sin(t*1.7)*1.2:0;sway=idle?Math.sin(t*.85)*.006:0;breath=idle?(Math.sin(t*1.65)+1)*.0022:0;squash=1}
+ const lean=moving?Math.sin(movePhase)*.010:Math.sin(t*.65)*.002;
+ ctx.save();
+ ctx.translate(groundX,groundY-bob);
+ ctx.rotate(lean+sway);
+ ctx.scale(1+(breath||0),squash+(breath||0));
+ if(art.complete&&art.naturalWidth){
+   ctx.scale(charW/art.naturalWidth,charH/art.naturalHeight);
+   ctx.translate(-art.naturalWidth/2,-art.naturalHeight);
+   ctx.drawImage(art,0,0);
+   if(hairOn){for(const layer of layers)drawHairLayer(layer,moving,t)}
+ }else{
+   ctx.fillStyle='#28232b';ctx.fillRect(-20,-120,40,120);
+ }
+ ctx.restore();
+ ctx.fillStyle='#4c4350';ctx.font='12px -apple-system, sans-serif';ctx.textAlign='center';
+ ctx.fillText(`위치 ${px.toFixed(1)}, ${pz.toFixed(1)} · ${moving?'이동 중':'대기'}`,W/2,H-105);
+ requestAnimationFrame(draw)
+}
+requestAnimationFrame(draw);
+const joy=document.querySelector('#joy'),nub=document.querySelector('#nub');
+function setJoy(e){const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,m=Math.hypot(dx,dy),max=38;if(m>max){dx=dx/m*max;dy=dy/m*max}joyX=dx/max;joyY=dy/max;nub.style.left=(35+dx)+'px';nub.style.top=(35+dy)+'px'}
+joy.addEventListener('pointerdown',e=>{joy.setPointerCapture(e.pointerId);setJoy(e)});
+joy.addEventListener('pointermove',e=>{if(e.buttons||e.pressure>0)setJoy(e)});
+function reset(){joyX=joyY=0;nub.style.left='35px';nub.style.top='35px'}
+joy.addEventListener('pointerup',reset);joy.addEventListener('pointercancel',reset);
+document.querySelector('#mode').onclick=()=>{walk=!walk;document.querySelector('#mode').textContent='걷기 모션: '+(walk?'ON':'OFF')};
+document.querySelector('#motion').onclick=()=>{idle=!idle;document.querySelector('#motion').textContent='대기 호흡: '+(idle?'ON':'OFF')};
+document.querySelector('#hair').onclick=()=>{hairOn=!hairOn;document.querySelector('#hair').textContent='머리 파츠: '+(hairOn?'ON':'OFF')};
+c.addEventListener('pointerdown',e=>{if(e.clientY>H-170&&e.clientX<160)return;drag={x:e.clientX,y:e.clientY};lastX=e.clientX;lastY=e.clientY;c.setPointerCapture(e.pointerId)});
+c.addEventListener('pointermove',e=>{if(drag){yaw+=(e.clientX-lastX)*.008;camTilt=Math.max(-.08,Math.min(.08,camTilt+(e.clientY-lastY)*.0005));lastX=e.clientX;lastY=e.clientY}});
+c.addEventListener('pointerup',()=>drag=null);c.addEventListener('pointercancel',()=>drag=null);
+setInterval(()=>{if(Math.hypot(joyX,joyY)>.08){px+=joyX*.055*Math.cos(yaw)-joyY*.055*Math.sin(yaw);pz+=joyX*.055*Math.sin(yaw)+joyY*.055*Math.cos(yaw);px=Math.max(-7,Math.min(7,px));pz=Math.max(-7,Math.min(7,pz))}},16);
+</script>
+</body>
+</html>
