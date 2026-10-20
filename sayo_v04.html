@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>첫 번째 사요 — 3D 월드</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#faf9fc;font-family:system-ui,sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}canvas{display:block;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;inset:0;pointer-events:none;color:#28232b}.card{position:absolute;background:#ffffffd9;border:1px solid #ddd5e0;border-radius:13px;padding:10px 13px;backdrop-filter:blur(8px)}#brand{top:13px;left:13px}#brand b{display:block;font-size:13px}#brand small{font-size:11px;opacity:.7}#hint{right:13px;top:13px;text-align:right;font-size:12px;line-height:1.5}#status{bottom:14px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#joy{display:none;position:absolute;pointer-events:auto;touch-action:none;left:max(18px,env(safe-area-inset-left));bottom:max(24px,env(safe-area-inset-bottom));width:132px;height:132px;border:1px solid #bcb0c2a0;border-radius:50%;background:#ffffff77}#stick{position:absolute;left:41px;top:41px;width:48px;height:48px;border-radius:50%;background:#8b6c8a55;border:1px solid #8b6c8a88}@media(pointer:coarse){#joy{display:block}#hint{max-width:160px;font-size:11px}}
+</style></head><body><canvas id="c"></canvas><div id="hud"><div id="brand" class="card"><b>SAYO · FIRST WORLD v0.4</b><small>리빌드 모델 v0.4 · 리깅 구조/고딕 로리타</small></div><div id="hint" class="card">PC: WASD / 방향키 이동<br>마우스 드래그: 시점 회전<br>모바일: 왼쪽 패드 이동</div><div id="status" class="card">하얀 연습 월드 · 사요 리깅 모델 v0.4</div><div id="joy"><div id="stick"></div></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const canvas=document.querySelector('#c'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xfaf9fc);scene.fog=new THREE.Fog(0xfaf9fc,28,75);
+const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,150);
+scene.add(new THREE.HemisphereLight(0xffffff,0xbeb2c0,2));const sun=new THREE.DirectionalLight(0xffffff,3);sun.position.set(-7,12,5);sun.castShadow=true;scene.add(sun);
+const M=(c,r=.8,metal=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:metal});
+const mats={white:M(0xffffff),wall:M(0xf4f1f5),black:M(0x17131c,.6),hair:M(0x211923,.35),red:M(0x9e173c,.5),skin:M(0xffdfd8),blouse:M(0xfaf6f5),sock:M(0xf4edf0),dark:M(0x302a36),shoe:M(0x100e15,.35),gold:M(0x9b7b50,.4,.4),eye:M(0xc92b58,.25)};
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),mats.white);floor.rotation.x=-Math.PI/2;floor.position.y=-.02;floor.receiveShadow=true;scene.add(floor);
+const grid=new THREE.GridHelper(100,50,0xe5dfe8,0xf0edf2);grid.position.y=.003;scene.add(grid);
+function wall(w,h,x,y,z,rot=0){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,.35),mats.wall);o.position.set(x,y,z);o.rotation.y=rot;o.castShadow=true;scene.add(o)}
+wall(44,7,0,3.5,-22);wall(44,7,0,3.5,22);wall(44,7,-22,3.5,0,Math.PI/2);wall(44,7,22,3.5,0,Math.PI/2);
+// --- Sayo v0.4: rebuilt stylized model with an articulated rig hierarchy ---
+// The world/camera/touch controls remain from v0.1. Character proportions and
+// the hair, face, layered dress and accessory layout are rebuilt here.
+const sayo=new THREE.Group();scene.add(sayo);
+const rig=new THREE.Group();sayo.add(rig);
+function mesh(g,m,p,x,y,z,sx=1,sy=1,sz=1){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;p.add(o);return o}
+function ball(p,m,x,y,z,sx,sy,sz){return mesh(new THREE.SphereGeometry(1,32,24),m,p,x,y,z,sx,sy,sz)}
+function limb(p,m,a,b,r1,r2=r1){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A);const o=mesh(new THREE.CylinderGeometry(r2,r1,d.length(),16),m,p,(A.x+B.x)/2,(A.y+B.y)/2,(A.z+B.z)/2);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());return o}
+const cloth=M(0x211a25,.66), cloth2=M(0x302532,.62), wine=M(0x8e1738,.58), lace=M(0xfff8f5,.85), hair=M(0x211923,.3), hairLight=M(0x563441,.34), crimson=M(0xb51f49,.34), skin=M(0xffded8,.83), skinShadow=M(0xeeb9b9,.86), gold=M(0xb08a52,.38,.35), eyeWhite=M(0xfff8f8,.4), iris=M(0xc52d59,.22), sole=M(0x08070b,.3);
+function bow(p,x,y,z,sc=1,rotation=0){const k=ball(p,cloth2,x,y,z,.045*sc,.04*sc,.027*sc);k.rotation.z=rotation;for(const side of [-1,1]){const l=ball(p,cloth,x+side*.085*sc,y+.008*sc,z,.09*sc,.047*sc,.018*sc);l.rotation.z=side*.34+rotation;const t=mesh(new THREE.BufferGeometry(),cloth,p,x+side*.055*sc,y-.105*sc,z);const shape=new THREE.Shape();shape.moveTo(-.022*sc,0);shape.lineTo(.022*sc,0);shape.lineTo(.014*sc,-.18*sc);shape.lineTo(0,-.15*sc);shape.lineTo(-.018*sc,-.18*sc);shape.closePath();const g=new THREE.ShapeGeometry(shape);t.geometry.dispose();t.geometry=g;t.position.set(x+side*.055*sc,y-.035*sc,z);t.rotation.z=side*.1+rotation;}
+return k}
+function rose(p,x,y,z,sc=1){ball(p,cloth2,x,y,z,.064*sc,.06*sc,.035*sc);for(let i=0;i<9;i++){const a=i*Math.PI*2/9;const pet=ball(p,M(i%2?0x382531:0x51404a,.48),x+Math.cos(a)*.034*sc,y+Math.sin(a)*.034*sc,z+.022*sc,.032*sc,.027*sc,.016*sc);pet.rotation.z=a}ball(p,gold,x,y,z+.04*sc,.012*sc,.012*sc,.009*sc)}
+// Articulated joints: root -> torso -> neck/head, plus shoulders, elbows, hips and knees.
+const pelvis=new THREE.Group();pelvis.position.y=1.02;rig.add(pelvis);
+const torso=new THREE.Group();torso.position.y=.35;pelvis.add(torso);
+const neck=new THREE.Group();neck.position.y=.43;torso.add(neck);
+const head=new THREE.Group();head.position.y=.27;neck.add(head);
+const leftShoulder=new THREE.Group();leftShoulder.position.set(-.205,.31,0);torso.add(leftShoulder);
+const rightShoulder=new THREE.Group();rightShoulder.position.set(.205,.31,0);torso.add(rightShoulder);
+const leftHip=new THREE.Group();leftHip.position.set(-.13,-.02,0);pelvis.add(leftHip);
+const rightHip=new THREE.Group();rightHip.position.set(.13,-.02,0);pelvis.add(rightHip);
+// Legs with knees and shoes, one pale stocking and one diamond stocking.
+function makeLeg(hip,side){const pale=side<0;const upper=limb(hip,pale?lace:cloth2,[0,0,0],[0,-.30,0],.072,.061);const knee=new THREE.Group();knee.position.y=-.29;hip.add(knee);ball(knee,pale?lace:cloth2,0,0,0,.061,.065,.061);limb(knee,pale?lace:cloth2,[0,0,0],[0,-.34,.008],.06,.045);if(pale){mesh(new THREE.CylinderGeometry(.064,.057,.18,24),lace,knee,0,-.105,.006);mesh(new THREE.TorusGeometry(.06,.009,8,24),eyeWhite,knee,0,-.02,.006).rotation.x=Math.PI/2;}else{mesh(new THREE.CylinderGeometry(.062,.047,.27,24),cloth2,knee,0,-.15,.006);for(let row=0;row<8;row++)for(let col=-1;col<=1;col++){const yy=-.04-row*.032,xx=col*.032+(row%2)*.016;const diamond=mesh(new THREE.PlaneGeometry(.036,.036),((row+col)%2===0)?lace:cloth,knee,xx,yy,.055);diamond.rotation.z=Math.PI/4;}}
+const shoe=new THREE.Group();shoe.position.set(0,-.36,.045);knee.add(shoe);mesh(new THREE.BoxGeometry(.18,.055,.29),sole,shoe,0,-.015,.035);mesh(new THREE.BoxGeometry(.17,.09,.27),M(0x17131a,.24,.12),shoe,0,.025,.045);mesh(new THREE.BoxGeometry(.12,.018,.025),gold,shoe,0,.065,.15);mesh(new THREE.BoxGeometry(.025,.026,.02),gold,shoe,.045,.065,.15);return {hip,knee,upper,shoe}}
+const legL=makeLeg(leftHip,-1),legR=makeLeg(rightHip,1);
+// Blouse, fitted corset and a proper white vertical ruffle placket.
+ball(torso,lace,0,.14,0,.205,.27,.135);
+mesh(new THREE.CylinderGeometry(.145,.18,.23,32),cloth,torso,0,-.035,.005);
+mesh(new THREE.BoxGeometry(.17,.22,.018),cloth2,torso,0,-.035,.135);
+for(let i=0;i<8;i++){ball(torso,lace,0,.235-i*.027,.139,.022,.018,.009);if(i<6)ball(torso,gold,.052,.17-i*.048,.15,.006,.006,.004)}
+// High frilled collar and prominent chest bow.
+mesh(new THREE.CylinderGeometry(.082,.092,.055,24),lace,neck,0,.005,0);
+bow(neck,0,-.045,.142,1.22);
+ball(neck,gold,0,-.045,.17,.012,.016,.008);
+// Sleeves and jointed arms. Sleeves are puffed but remain attached to shoulders.
+function makeArm(group,side){ball(group,lace,side*.025,-.025,0,.09,.105,.09);const upper=limb(group,lace,[side*.025,-.06,.005],[side*.075,-.22,.035],.06,.052);const elbow=new THREE.Group();elbow.position.set(side*.075,-.22,.035);group.add(elbow);limb(elbow,lace,[0,0,0],[side*.025,-.19,.025],.05,.038);mesh(new THREE.CylinderGeometry(.043,.045,.045,16),lace,elbow,side*.025,-.18,.025);ball(elbow,skin,side*.025,-.225,.045,.038,.045,.035);return {group,elbow,upper}}
+const armL=makeArm(leftShoulder,-1),armR=makeArm(rightShoulder,1);
+// Layered bell skirt: smooth panels, soft scallops and visible burgundy underskirt.
+mesh(new THREE.CylinderGeometry(.18,.39,.31,48,1,true),wine,pelvis,0,-.015,0);
+mesh(new THREE.CylinderGeometry(.18,.365,.27,48,1,true),cloth,pelvis,0,.005,.012);
+mesh(new THREE.CylinderGeometry(.19,.385,.09,48,1,true),lace,pelvis,0,-.16,.006);
+const skirtHem=mesh(new THREE.TorusGeometry(.375,.012,10,64),wine,pelvis,0,-.16,0);skirtHem.rotation.x=Math.PI/2;
+for(let i=0;i<32;i++){const a=i*Math.PI*2/32,x=Math.sin(a)*.355,z=Math.cos(a)*.355;const pleat=mesh(new THREE.BoxGeometry(.075,.24,.025),i%4===0?cloth2:cloth,pelvis,x,-.025,z);pleat.rotation.y=a;pleat.rotation.z=Math.sin(a)*.06;}
+for(let i=0;i<36;i++){const a=i*Math.PI*2/36;const r=.35;const fr=ball(pelvis,lace,Math.sin(a)*r,-.16,Math.cos(a)*r,.036,.022,.022);fr.rotation.y=a;}
+// Short layered overskirt points with restrained red lining, rather than huge detached spikes.
+for(let side of [-1,1])for(let j=0;j<3;j++){const x=side*(.23+j*.035);const panel=mesh(new THREE.ConeGeometry(.13,.38-j*.025,5),j===1?wine:cloth,pelvis,x,-.19,-.015+j*.018,.85,1,.22);panel.rotation.z=side*(.2+j*.08);}
+// Small lace/chain ornaments and hip bows.
+bow(pelvis,-.29,-.01,.19,.68,.12);bow(pelvis,.29,-.01,.19,.68,-.12);
+for(let side of [-1,1]){limb(pelvis,gold,[side*.29,-.06,.19],[side*.32,-.20,.20],.003,.003);ball(pelvis,gold,side*.32,-.21,.20,.009,.015,.008)}
+// Head: soft oval face, tiny nose/mouth and one visible ruby eye. Face points toward +Z.
+ball(head,skin,0,0,0,.235,.29,.205);
+for(let side of [-1,1])ball(head,skinShadow,side*.226,-.02,.005,.033,.055,.028);
+// one large eye on the viewer's right; left is hidden by fringe
+ball(head,eyeWhite,.092,-.045,.187,.067,.079,.024);
+ball(head,iris,.101,-.045,.207,.043,.058,.016);
+ball(head,M(0x4a1026,.2),.104,-.047,.219,.022,.038,.009);
+ball(head,M(0xffffff,.2),.116,-.022,.226,.012,.015,.006);
+mesh(new THREE.BoxGeometry(.073,.009,.009),hairLight,head,.095,.045,.194).rotation.z=-.1;
+ball(head,skinShadow,.012,-.09,.201,.012,.012,.009);
+mesh(new THREE.BoxGeometry(.033,.005,.005),M(0xa65b68),head,.03,-.132,.197);
+// Hair cap follows skull shape; smooth back mantle tapers to waist.
+ball(head,hair,0,.13,-.035,.255,.285,.218);
+const backHair=ball(rig,hair,0,1.47,-.155,.275,.79,.145);
+// Tapered curved-looking locks built from narrow capsule-like ellipsoids, not cones/spikes.
+function hairLock(parent,x,y,z,len,width,mat,lean=0,depth=.035){const g=new THREE.Group();g.position.set(x,y,z);g.rotation.z=lean;parent.add(g);ball(g,mat,0,-len*.28,0,width,len*.47,depth);ball(g,mat,0,-len*.66,.003,width*.78,len*.22,depth*.8);return g}
+for(let i=0;i<11;i++){const x=-.245+i*.049;const len=1.22+(i%4)*.075;hairLock(rig,x,2.03,-.285,len,.033,i%4===0?hairLight:hair,(x)*-.10,.05);if(i===2||i===7)hairLock(rig,x+.012,2.01,-.23,len*.88,.009,crimson,-x*.08,.012)}
+// Face-framing locks, red streaks, fine glossy strands.
+for(const side of [-1,1]){hairLock(rig,side*.205,2.02,.13,1.27,.055,hair,-side*.04,.055);hairLock(rig,side*.225,2.00,.178,1.18,.013,crimson,-side*.04,.014);hairLock(rig,side*.31,1.96,.06,1.02,.022,hairLight,-side*.08,.025)}
+// Heavy asymmetrical fringe: overlapping smooth tapered locks that fully cover the left eye.
+for(let i=0;i<12;i++){const x=-.205+i*.032;const len=.31+(i%4)*.025;const lock=hairLock(head,x,.07,.184,len,.024,i%4===0?hairLight:hair,(x+.08)*-.13,.035);if(i===3||i===8)hairLock(head,x+.005,.075,.207,len*.94,.008,crimson,(x+.08)*-.13,.009)}
+// Bang edge wisps and narrow highlight strokes.
+for(let i=0;i<5;i++){const x=-.16+i*.065;mesh(new THREE.BoxGeometry(.006,.15,.004),i%2?hairLight:crimson,head,x,.075,.217).rotation.z=(x+.05)*-.12;}
+// Gothic headpiece: black layered ribbon loops, rose and delicate chains on the right side.
+bow(head,.205,.205,.035,1.22,-.35);bow(head,.255,.12,.018,.88,-.25);rose(head,.22,.235,.09,1.0);
+for(let i=0;i<3;i++){limb(head,gold,[.245+i*.018,.15,.075],[.27+i*.018,-.015-i*.025,.07],.003,.002);ball(head,gold,.27+i*.018,-.025-i*.025,.07,.006,.01,.006)}
+bow(head,-.205,.13,-.01,.78,.32);
+// Hair ornaments on the rear sides and long ribbon tails.
+for(const side of [-1,1]){bow(rig,side*.245,1.72,-.14,.8,side*.25);hairLock(rig,side*.30,1.68,-.13,.68,.012,cloth2,-side*.08,.012)}
+// gentle idle sway and walk-cycle controls use the articulated joints above.
+let yaw=0,pitch=.18,keys={},drag=false,lx=0,ly=0;addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||e.clientX>innerWidth*.35){drag=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;let dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;yaw-=dx*.006;pitch=Math.max(-.05,Math.min(.65,pitch+dy*.003))});canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
+let jx=0,jy=0,jOn=false;const joy=document.querySelector('#joy'),stick=document.querySelector('#stick');function joyMove(e){let r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),l=Math.hypot(dx,dy),max=37;if(l>max){dx=dx/l*max;dy=dy/l*max}jx=dx/max;jy=dy/max;stick.style.transform=`translate(${dx}px,${dy}px)`}function joyEnd(){jOn=false;jx=jy=0;stick.style.transform='translate(0,0)'}joy.addEventListener('pointerdown',e=>{jOn=true;joy.setPointerCapture(e.pointerId);joyMove(e)});joy.addEventListener('pointermove',e=>{if(jOn)joyMove(e)});joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+const clock=new THREE.Clock(),status=document.querySelector('#status');
+function loop(){requestAnimationFrame(loop);let dt=Math.min(clock.getDelta(),.04),ix=0,iz=0;if(keys.w||keys.arrowup)iz-=1;if(keys.s||keys.arrowdown)iz+=1;if(keys.a||keys.arrowleft)ix-=1;if(keys.d||keys.arrowright)ix+=1;ix+=jx;iz+=jy;let mag=Math.hypot(ix,iz),moving=mag>.08;if(moving){ix/=Math.max(1,mag);iz/=Math.max(1,mag);let f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)),dir=f.multiplyScalar(-iz).add(r.multiplyScalar(ix)).normalize();sayo.position.addScaledVector(dir,dt*3.4);sayo.rotation.y=Math.atan2(dir.x,dir.z);const t=performance.now()*.009;rig.position.y=Math.abs(Math.sin(t))*.025;torso.rotation.z=Math.sin(t)*.025;leftShoulder.rotation.x=Math.sin(t)*.18;rightShoulder.rotation.x=-Math.sin(t)*.18;leftHip.rotation.x=Math.sin(t)*.22;rightHip.rotation.x=-Math.sin(t)*.22;legL.knee.rotation.x=Math.max(0,Math.sin(t))*-.18;legR.knee.rotation.x=Math.max(0,-Math.sin(t))*-.18}else{rig.position.y=THREE.MathUtils.lerp(rig.position.y,0,dt*7);torso.rotation.z=THREE.MathUtils.lerp(torso.rotation.z,Math.sin(performance.now()*.0012)*.012,dt*3);leftShoulder.rotation.x=THREE.MathUtils.lerp(leftShoulder.rotation.x,0,dt*6);rightShoulder.rotation.x=THREE.MathUtils.lerp(rightShoulder.rotation.x,0,dt*6);leftHip.rotation.x=THREE.MathUtils.lerp(leftHip.rotation.x,0,dt*6);rightHip.rotation.x=THREE.MathUtils.lerp(rightHip.rotation.x,0,dt*6);legL.knee.rotation.x=THREE.MathUtils.lerp(legL.knee.rotation.x,0,dt*6);legR.knee.rotation.x=THREE.MathUtils.lerp(legR.knee.rotation.x,0,dt*6)}sayo.position.x=THREE.MathUtils.clamp(sayo.position.x,-20,20);sayo.position.z=THREE.MathUtils.clamp(sayo.position.z,-20,20);let target=new THREE.Vector3(sayo.position.x,1.35,sayo.position.z),d=6.5,cp=new THREE.Vector3(target.x+Math.sin(yaw)*d*Math.cos(pitch),target.y+2.1+Math.sin(pitch)*d,target.z+Math.cos(yaw)*d*Math.cos(pitch));camera.position.lerp(cp,1-Math.exp(-dt*5));camera.lookAt(target);status.textContent=`하얀 연습 월드 · 위치 ${sayo.position.x.toFixed(1)}, ${sayo.position.z.toFixed(1)} · ${moving?'이동 중':'대기 중'}`;renderer.render(scene,camera)}
+loop();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))});
+</script></body></html>
