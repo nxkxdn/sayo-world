@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SAYO Hair Motion v0.9.1</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;background:#e7e0e9;color:#302b34}
+#stage{position:relative;width:100vw;height:100dvh;overflow:hidden;background:linear-gradient(#e5dfe8 0 48%,#fff 48% 100%)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.top{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.card{background:#ffffffed;border:1px solid #ded6e1;border-radius:18px;padding:10px 12px;box-shadow:0 4px 16px #5a4d5b10;font-size:12px;line-height:1.35}
+.card b{display:block;font-size:14px;margin-bottom:3px}
+.controls{position:absolute;right:12px;bottom:18px;display:flex;flex-direction:column;gap:8px;width:150px}
+button{border:1px solid #cfc4d2;background:#ffffffed;color:#39313d;border-radius:16px;padding:12px 8px;font-size:13px}
+.note{position:absolute;left:12px;bottom:20px;max-width:calc(100% - 175px);font-size:11px;line-height:1.35;color:#655b69;background:#ffffffd9;border-radius:12px;padding:8px}
+</style></head><body><div id="stage"><canvas id="c"></canvas>
+<div class="top"><div class="card"><b>SAYO · HAIR MOTION v0.9.1</b>머리카락 위치·경로 수정판</div><div class="card" style="text-align:right">긴 가닥은 크게<br>뿌리는 작게</div></div>
+<div class="controls"><button id="toggle">머리카락 흔들림: ON</button><button id="power">움직임 강도: 강하게</button><button id="reset">흔들림 초기화</button></div>
+<div class="note">베이스는 유지 · PNG 경로를 폴더/루트 양쪽에서 찾도록 수정</div></div>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const base=new Image();base.src='sayo_base.png';
+let parts=[],enabled=true,strong=true,t0=performance.now(),last=0,W=0,H=0,dpr=1;
+function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+async function loadPart(m,i){
+ const im=new Image();
+ const candidates=['hair_parts/'+m.file,m.file];
+ for(const src of candidates){
+   try{
+    await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=reject;im.src=src});
+    if(im.naturalWidth) return {...m,img:im,idx:i};
+   }catch(e){}
+ }
+ console.warn('Hair part missing:',m.file);
+ return {...m,img:null,idx:i};
+}
+fetch('hair_manifest.json').then(r=>{if(!r.ok)throw Error('manifest missing');return r.json()})
+.then(async data=>{parts=await Promise.all(data.map(loadPart));requestAnimationFrame(draw)})
+.catch(e=>{console.error(e);requestAnimationFrame(draw)});
+function draw(now=performance.now()){
+ last=now;ctx.clearRect(0,0,W,H);
+ ctx.fillStyle='#e7e0e9';ctx.fillRect(0,0,W,H*.49);ctx.fillStyle='#fff';ctx.fillRect(0,H*.49,W,H*.51);
+ ctx.strokeStyle='#e8e2eb';ctx.lineWidth=1;
+ for(let i=-10;i<=10;i++){ctx.beginPath();ctx.moveTo(W/2+i*W/12,H*.49);ctx.lineTo(W/2+i*W/3,H);ctx.stroke()}
+ for(let j=0;j<12;j++){let y=H*.49+(j/11)*(H*.51);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ const scale=Math.min(W/1086,H/1448),bw=1086*scale,bh=1448*scale,bx=(W-bw)/2,by=(H-bh)/2+8;
+ if(base.complete&&base.naturalWidth)ctx.drawImage(base,bx,by,bw,bh);
+ // Hair parts came from the old, hair-covered artwork. Fit them to the smaller head in the bald base.
+ // Scale only the head/hair artwork, not the body; use a less aggressive shrink than v0.9.
+ const hs=scale*.70, anchorOldX=510,anchorOldY=115;
+ const anchorX=bx+bw*(510/1086),anchorY=by+bh*(112/1448);
+ const elapsed=(now-t0)/1000;
+ for(const p of parts){
+  if(!p.img||!p.img.complete||!p.img.naturalWidth)continue;
+  const px=p.x,py=p.y,pw=p.width,ph=p.height,pivot=p.pivot||[px+pw/2,py+ph/2];
+  const pivotX=anchorX+(pivot[0]-anchorOldX)*hs;
+  const pivotY=anchorY+(pivot[1]-anchorOldY)*hs;
+  const long=/outer|inner|flyaway|04L|04R|12_|11_/.test(p.name);
+  const root=/crown|bangs|ribbon/.test(p.name);
+  let amp=root?.018:(long?(strong?.18:.085):(strong?.085:.04));
+  if(/flyaway/.test(p.name))amp*=1.15;
+  const freq=.9+(p.idx%5)*.14,phase=(p.phase||0)+p.idx*.57;
+  const angle=enabled?Math.sin(elapsed*freq+phase)*amp:0;
+  const sway=enabled?Math.sin(elapsed*freq*.72+phase+1.1)*(long?(strong?7:3):1.2)*scale:0;
+  ctx.save();ctx.translate(pivotX+sway,pivotY);ctx.rotate(angle);
+  ctx.drawImage(p.img,-(pivot[0]-px)*hs,-(pivot[1]-py)*hs,pw*hs,ph*hs);
+  ctx.restore();
+ }
+ requestAnimationFrame(draw);
+}
+document.getElementById('toggle').onclick=()=>{enabled=!enabled;document.getElementById('toggle').textContent='머리카락 흔들림: '+(enabled?'ON':'OFF')};
+document.getElementById('power').onclick=()=>{strong=!strong;document.getElementById('power').textContent='움직임 강도: '+(strong?'강하게':'보통')};
+document.getElementById('reset').onclick=()=>{t0=performance.now()};
+</script></body></html>
