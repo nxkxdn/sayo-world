@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>첫 번째 사요 — 3D 월드</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#faf9fc;font-family:system-ui,sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}canvas{display:block;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;inset:0;pointer-events:none;color:#28232b}.card{position:absolute;background:#ffffffd9;border:1px solid #ddd5e0;border-radius:13px;padding:10px 13px;backdrop-filter:blur(8px)}#brand{top:13px;left:13px}#brand b{display:block;font-size:13px}#brand small{font-size:11px;opacity:.7}#hint{right:13px;top:13px;text-align:right;font-size:12px;line-height:1.5}#status{bottom:14px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#joy{display:none;position:absolute;pointer-events:auto;touch-action:none;left:max(18px,env(safe-area-inset-left));bottom:max(24px,env(safe-area-inset-bottom));width:132px;height:132px;border:1px solid #bcb0c2a0;border-radius:50%;background:#ffffff77}#stick{position:absolute;left:41px;top:41px;width:48px;height:48px;border-radius:50%;background:#8b6c8a55;border:1px solid #8b6c8a88}@media(pointer:coarse){#joy{display:block}#hint{max-width:160px;font-size:11px}}
+</style></head><body><canvas id="c"></canvas><div id="hud"><div id="brand" class="card"><b>SAYO · FIRST WORLD v0.3</b><small>3D 모델 개선 v0.3 · 고딕 로리타 디테일</small></div><div id="hint" class="card">PC: WASD / 방향키 이동<br>마우스 드래그: 시점 회전<br>모바일: 왼쪽 패드 이동</div><div id="status" class="card">하얀 연습 월드 · 사요 외형 개선 v0.3</div><div id="joy"><div id="stick"></div></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const canvas=document.querySelector('#c'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xfaf9fc);scene.fog=new THREE.Fog(0xfaf9fc,28,75);
+const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,150);
+scene.add(new THREE.HemisphereLight(0xffffff,0xbeb2c0,2));const sun=new THREE.DirectionalLight(0xffffff,3);sun.position.set(-7,12,5);sun.castShadow=true;scene.add(sun);
+const M=(c,r=.8,metal=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:metal});
+const mats={white:M(0xffffff),wall:M(0xf4f1f5),black:M(0x17131c,.6),hair:M(0x211923,.35),red:M(0x9e173c,.5),skin:M(0xffdfd8),blouse:M(0xfaf6f5),sock:M(0xf4edf0),dark:M(0x302a36),shoe:M(0x100e15,.35),gold:M(0x9b7b50,.4,.4),eye:M(0xc92b58,.25)};
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),mats.white);floor.rotation.x=-Math.PI/2;floor.position.y=-.02;floor.receiveShadow=true;scene.add(floor);
+const grid=new THREE.GridHelper(100,50,0xe5dfe8,0xf0edf2);grid.position.y=.003;scene.add(grid);
+function wall(w,h,x,y,z,rot=0){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,.35),mats.wall);o.position.set(x,y,z);o.rotation.y=rot;o.castShadow=true;scene.add(o)}
+wall(44,7,0,3.5,-22);wall(44,7,0,3.5,22);wall(44,7,-22,3.5,0,Math.PI/2);wall(44,7,22,3.5,0,Math.PI/2);
+// --- Sayo v0.3: refined silhouette, hair, gothic-lolita details ---
+const sayo=new THREE.Group();scene.add(sayo);const model=new THREE.Group();sayo.add(model);
+function mesh(g,m,p,x,y,z,sx=1,sy=1,sz=1){let o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;p.add(o);return o}
+function ball(p,m,x,y,z,sx,sy,sz){return mesh(new THREE.SphereGeometry(1,24,16),m,p,x,y,z,sx,sy,sz)}
+function limb(p,m,a,b,r1,r2=r1){let A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A);let o=mesh(new THREE.CylinderGeometry(r2,r1,d.length(),16),m,p,(A.x+B.x)/2,(A.y+B.y)/2,(A.z+B.z)/2);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return o}
+function ribbon(p,x,y,z,scale=1,mat=mats.black,rot=0){let knot=ball(p,mat,x,y,z,.055*scale,.045*scale,.035*scale);knot.rotation.z=rot;for(let s of [-1,1]){let l=mesh(new THREE.SphereGeometry(1,16,10),mat,p,x+s*.105*scale,y+.012*scale,z,.11*scale,.055*scale,.025*scale);l.rotation.z=s*.38+rot;let tail=mesh(new THREE.ConeGeometry(.042*scale,.24*scale,4),mat,p,x+s*.055*scale,y-.13*scale,z-.006,.8,1,.35);tail.rotation.z=s*.16+Math.PI}return knot}
+function rose(p,x,y,z,scale=1){ball(p,mats.black,x,y,z,.075*scale,.07*scale,.035*scale);for(let i=0;i<7;i++){let a=i*Math.PI*2/7,pet=ball(p,M(i%2?0x30202d:0x49313e,.42),x+Math.cos(a)*.04*scale,y+Math.sin(a)*.04*scale,z+.018*scale,.035*scale,.03*scale,.018*scale);pet.rotation.z=a}ball(p,M(0x171018),x,y,z+.038*scale,.023*scale,.023*scale,.012*scale)}
+// materials
+const satin=M(0x25202a,.38),redSatin=M(0x7e1735,.48),lace=M(0xfff8f6,.88),hairHi=M(0x563342,.32),hairRed=M(0xb5234c,.38),skinShade=M(0xf7cfc9,.85);
+// legs: asymmetric stockings, white thigh-high on left, diamond pattern on right
+for(let s of [-1,1]){
+ const x=s*.17;
+ limb(model,s===-1?mats.sock:mats.dark,[x,.75,.01],[x*1.1,.22,.015],s===-1?.075:.082,.055);
+ if(s===-1){mesh(new THREE.CylinderGeometry(.076,.06,.28,20),M(0xfaf5f5),model,x,.79,.012);mesh(new THREE.TorusGeometry(.073,.012,8,24),M(0xffffff),model,x,.91,.012);}
+ else{
+   // crisp alternating diamond motifs arranged on the front of the right stocking
+   for(let row=0;row<7;row++)for(let col=-1;col<=1;col++){
+     let yy=.31+row*.073,xx=x+col*.046+(row%2)*.023;
+     let d=mesh(new THREE.PlaneGeometry(.043,.064),row%2===col%2?M(0xf5eef3):M(0xeee6ec),model,xx,yy,.073);d.rotation.z=Math.PI/4;d.scale.set(.72,.72,1);
+   }
+ }
+ // chunky patent loafers with sole and front strap
+ mesh(new THREE.BoxGeometry(.22,.09,.34),mats.shoe,model,x,.115,.07);
+ mesh(new THREE.BoxGeometry(.225,.035,.345),M(0x08070b,.25),model,x,.065,.07);
+ let vamp=ball(model,mats.shoe,x,.17,.105,.105,.052,.16);
+ mesh(new THREE.BoxGeometry(.17,.025,.032),mats.gold,model,x,.205,.215);
+ mesh(new THREE.BoxGeometry(.028,.04,.022),mats.gold,model,x,.205,.219);
+ mesh(new THREE.BoxGeometry(.012,.052,.018),mats.gold,model,x-.055,.205,.218);
+}
+// torso and high-waisted corset
+ball(model,mats.blouse,0,1.48,0,.245,.32,.16);
+mesh(new THREE.CylinderGeometry(.18,.205,.24,24),M(0x201b25,.5),model,0,1.28,.005);
+mesh(new THREE.CylinderGeometry(.185,.205,.018,24),M(0x08070d),model,0,1.16,.005);
+// corset front panels and six tiny brass buttons
+mesh(new THREE.BoxGeometry(.22,.22,.025),M(0x29232c),model,0,1.3,.158);
+for(let y of [1.22,1.29,1.36])for(let s of [-1,1])ball(model,mats.gold,s*.065,y,.177,.012,.012,.008);
+// blouse ruffles down the front
+for(let i=0;i<7;i++){let y=1.39+i*.035;ball(model,lace,0,y,.168,.028,.018,.012)}
+// collar, cuffs, puff sleeves, arms and hands
+mesh(new THREE.CylinderGeometry(.105,.13,.07,20),lace,model,0,1.72,0);
+for(let s of [-1,1]){
+ ball(model,lace,s*.235,1.59,.005,.095,.13,.095);
+ limb(model,lace,[s*.25,1.55,.02],[s*.31,1.28,.1],.07,.055);
+ mesh(new THREE.CylinderGeometry(.058,.06,.065,16),lace,model,s*.31,1.265,.105);
+ ball(model,mats.skin,s*.315,1.205,.12,.052,.065,.045);
+ // sleeve ruffle highlights
+ for(let i=0;i<4;i++)ball(model,M(0xffffff),s*(.22+i*.018),1.59-i*.045,.085,.025,.035,.018);
+}
+// large black neck bow and jewel
+mesh(new THREE.CylinderGeometry(.105,.115,.08,20),lace,model,0,1.74,0);
+ribbon(model,0,1.65,.185,1.25,mats.black);
+ball(model,mats.gold,0,1.65,.22,.018,.025,.012);
+// layered skirt: bell shape, red underskirt and white lace hem
+mesh(new THREE.CylinderGeometry(.25,.49,.42,32,1,true),satin,model,0,1.02,0);
+mesh(new THREE.CylinderGeometry(.245,.47,.28,32,1,true),redSatin,model,0,.88,-.015);
+mesh(new THREE.CylinderGeometry(.25,.43,.13,32,1,true),lace,model,0,.78,.005);
+mesh(new THREE.CylinderGeometry(.27,.5,.24,32,1,true),satin,model,0,.98,.015);
+// visible scalloped lace tiers instead of a plain cylinder hem
+for(let tier=0;tier<2;tier++){let yy=.79+tier*.065,rad=.405-tier*.035;for(let i=0;i<28;i++){let a=i*Math.PI*2/28;let ruffle=ball(model,lace,Math.sin(a)*rad,yy,Math.cos(a)*rad,.052,.035,.025);ruffle.rotation.y=a;}}
+// narrow crimson piping around the lower edge
+let hem=mesh(new THREE.TorusGeometry(.465,.012,8,48),redSatin,model,0,.77,0);hem.rotation.x=Math.PI/2;
+// pleated panels around skirt, gold piping and decorative bows
+for(let i=0;i<20;i++){
+ let a=i*Math.PI*2/20, x=Math.sin(a)*.405,z=Math.cos(a)*.405;
+ let pleat=mesh(new THREE.BoxGeometry(.115,.27,.035),M(i%3===0?0x332936:0x17131c,.55),model,x,.92,z);
+ pleat.rotation.y=a;pleat.rotation.z=(i%2?-.1:.1);
+ if(i%2===0){let stud=ball(model,mats.gold,x,.83,z,.012,.012,.012)}
+}
+// asymmetrical long pointed overskirt tails around both hips
+for(let s of [-1,1])for(let j=0;j<3;j++){
+ let tail=mesh(new THREE.ConeGeometry(.19,.78-j*.07,4),s===-1?satin:redSatin,model,s*(.34+j*.035),.62-j*.02,-.015+j*.018,.72,1,.18);
+ tail.rotation.z=s*(.18+j*.09);tail.rotation.x=.12;
+}
+// visible red lining peeking from under the skirt
+for(let s of [-1,1]){let panel=mesh(new THREE.ConeGeometry(.2,.48,4),redSatin,model,s*.36,.72,.025,.85,1,.22);panel.rotation.z=s*.2}
+// skirt front lace motifs and side bows
+for(let i=0;i<5;i++){let x=(i-2)*.105;mesh(new THREE.BoxGeometry(.006,.12,.012),M(0xc5b8c4),model,x,.99,.432);if(i%2===0)ball(model,mats.gold,x,1.035,.44,.009,.009,.009)}
+ribbon(model,-.37,.99,.15,.85,mats.black,.15);ribbon(model,.37,.99,.15,.85,mats.black,-.15);
+// tiny lace bows and silver filigree details on the skirt front
+for(let s of [-1,1]){ribbon(model,s*.30,.88,.405,.46,mats.black,s*.12);for(let j=0;j<3;j++){let x=s*(.30+j*.035);limb(model,M(0xb6a9b6,.4,.45),[x,.93,.425],[x+s*.018,.82,.43],.004,.003);}}
+// head, with large anime proportions and soft cheeks
+const head=new THREE.Group();model.add(head);head.position.set(0,2.03,.015);
+ball(head,mats.skin,0,0,0,.265,.315,.225);
+// ears mostly hidden by hair
+for(let s of [-1,1])ball(head,skinShade,s*.275,-.025,.005,.045,.07,.045);
+// visible right eye only; the left is hidden by the fringe
+ball(head,M(0xfff7f6),.105,-.045,.218,.082,.09,.025);
+ball(head,M(0x9d1743,.28),.112,-.047,.24,.052,.067,.018);
+ball(head,M(0x4b1028,.25),.113,-.05,.255,.027,.045,.012);
+ball(head,M(0xffffff),.127,-.019,.267,.016,.02,.008);
+// subtle eyebrow, nose and small mouth
+mesh(new THREE.BoxGeometry(.075,.009,.008),hairHi,head,.11,.055,.231).rotation.z=-.08;
+ball(head,skinShade,.015,-.095,.236,.018,.014,.012);
+mesh(new THREE.BoxGeometry(.04,.006,.006),M(0x9f5364),head,.045,-.145,.232);
+// rounded crown and long back hair mantle
+ball(head,mats.hair,0,.16,-.055,.292,.325,.245);
+ball(head,hairHi,-.035,.345,-.06,.205,.065,.19);
+// long hair sheet down the back, tapering into many locks
+mesh(new THREE.SphereGeometry(1,24,16),mats.hair,model,0,1.37,-.17,.34,.72,.16);
+for(let i=0;i<13;i++){
+ let x=-.32+i*.053, len=.78+(i%4)*.16;
+ let lock=mesh(new THREE.ConeGeometry(.075,len,9),i%3===0?hairHi:mats.hair,model,x,1.37-len*.38,-.19-(i%3)*.012,.62,1,.48);
+ lock.rotation.z=(x)*-.12;
+ if(i%3===0){let stripe=mesh(new THREE.ConeGeometry(.018,len*.84,6),hairRed,model,x+.018,1.37-len*.38,-.145-(i%3)*.012,.8,1,.3);stripe.rotation.z=(x)*-.12}
+}
+// long front locks framing the body with crimson streaks
+for(let s of [-1,1]){
+ let x=s*.24;
+ let lock=mesh(new THREE.ConeGeometry(.085,1.36,10),mats.hair,model,x,1.45,.115,.72,1,.62);lock.rotation.z=-s*.045;
+ let redlock=mesh(new THREE.ConeGeometry(.026,1.22,7),hairRed,model,x-s*.027,1.46,.164,.8,1,.45);redlock.rotation.z=-s*.045;
+ // finer side strands
+ let fine=mesh(new THREE.ConeGeometry(.025,.92,7),hairHi,model,s*.36,1.5,.055,.65,1,.5);fine.rotation.z=-s*.1;
+}
+// heavy asymmetric fringe: long tapered clumps covering the left eye
+for(let i=0;i<15;i++){
+ let x=-.245+i*.035, len=.34+(i%5)*.024;
+ let bang=mesh(new THREE.BoxGeometry(.032,len,.045),i%5===0?hairHi:mats.hair,head,x,.035,.218,.92,1,.72);
+ bang.rotation.z=(x+.045)*-.20;
+ let tip=mesh(new THREE.ConeGeometry(.017,.09,5),mats.hair,head,x,.035-len*.53,.218,.9,1,.7);tip.rotation.z=Math.PI;
+}
+// bold crimson streak through fringe
+let frontRed=mesh(new THREE.ConeGeometry(.024,.37,7),hairRed,head,-.105,.15,.25,.8,1,.45);frontRed.rotation.z=.08;
+// polished anime hair ribbons: slim rose highlights following the fringe and long locks
+for(let i=0;i<5;i++){let x=-.19+i*.075;let shine=mesh(new THREE.BoxGeometry(.008,.22+(i%2)*.08,.006),i%2?hairHi:hairRed,head,x,.12,.244,.75,1,.5);shine.rotation.z=(x+.04)*-.18;}
+// long tapered crimson strands on both sides, clearly visible in motion
+for(let s of [-1,1]){for(let k=0;k<2;k++){let strand=mesh(new THREE.ConeGeometry(.012,.88-k*.12,6),hairRed,model,s*(.22+k*.045),1.38-k*.035,.19,.7,1,.45);strand.rotation.z=-s*.045;}}
+// ornate gothic bows and rose clusters on both sides, heavier on visible side
+for(let s of [-1,1]){
+ ribbon(head,s*.235,.24,.055,1.2,mats.black,s*.35);
+ ribbon(head,s*.29,.14,.045,.72,satin,s*.25);
+}
+rose(head,.255,.285,.11,1.05);rose(head,.29,.22,.105,.65);
+// fine dangling chains and ribbon tails at the hair ornament
+for(let i=0;i<3;i++){
+ limb(head,mats.gold,[.29+i*.025,.18,.09],[.31+i*.025,-.03-i*.035,.08],.006,.004);
+ ball(head,mats.gold,.31+i*.025,-.045-i*.035,.08,.012,.02,.01);
+}
+// small black hair bows at the back silhouette
+for(let s of [-1,1])ribbon(model,s*.29,1.83,-.11,.85,mats.black,s*.35);
+
+let yaw=0,pitch=.18,keys={},drag=false,lx=0,ly=0;addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||e.clientX>innerWidth*.35){drag=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;let dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;yaw-=dx*.006;pitch=Math.max(-.05,Math.min(.65,pitch+dy*.003))});canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
+let jx=0,jy=0,jOn=false;const joy=document.querySelector('#joy'),stick=document.querySelector('#stick');function joyMove(e){let r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),l=Math.hypot(dx,dy),max=37;if(l>max){dx=dx/l*max;dy=dy/l*max}jx=dx/max;jy=dy/max;stick.style.transform=`translate(${dx}px,${dy}px)`}function joyEnd(){jOn=false;jx=jy=0;stick.style.transform='translate(0,0)'}joy.addEventListener('pointerdown',e=>{jOn=true;joy.setPointerCapture(e.pointerId);joyMove(e)});joy.addEventListener('pointermove',e=>{if(jOn)joyMove(e)});joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+const clock=new THREE.Clock(),status=document.querySelector('#status');
+function loop(){requestAnimationFrame(loop);let dt=Math.min(clock.getDelta(),.04),ix=0,iz=0;if(keys.w||keys.arrowup)iz-=1;if(keys.s||keys.arrowdown)iz+=1;if(keys.a||keys.arrowleft)ix-=1;if(keys.d||keys.arrowright)ix+=1;ix+=jx;iz+=jy;let mag=Math.hypot(ix,iz),moving=mag>.08;if(moving){ix/=Math.max(1,mag);iz/=Math.max(1,mag);let f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)),dir=f.multiplyScalar(-iz).add(r.multiplyScalar(ix)).normalize();sayo.position.addScaledVector(dir,dt*3.4);sayo.rotation.y=Math.atan2(dir.x,dir.z);model.position.y=Math.abs(Math.sin(performance.now()*.012))*.035}else model.position.y=THREE.MathUtils.lerp(model.position.y,0,dt*8);sayo.position.x=THREE.MathUtils.clamp(sayo.position.x,-20,20);sayo.position.z=THREE.MathUtils.clamp(sayo.position.z,-20,20);let target=new THREE.Vector3(sayo.position.x,1.35,sayo.position.z),d=6.5,cp=new THREE.Vector3(target.x+Math.sin(yaw)*d*Math.cos(pitch),target.y+2.1+Math.sin(pitch)*d,target.z+Math.cos(yaw)*d*Math.cos(pitch));camera.position.lerp(cp,1-Math.exp(-dt*5));camera.lookAt(target);status.textContent=`하얀 연습 월드 · 위치 ${sayo.position.x.toFixed(1)}, ${sayo.position.z.toFixed(1)} · ${moving?'이동 중':'대기 중'}`;renderer.render(scene,camera)}
+loop();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))});
+</script></body></html>
