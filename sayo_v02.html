@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>첫 번째 사요 — 3D 월드</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#faf9fc;font-family:system-ui,sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}canvas{display:block;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;inset:0;pointer-events:none;color:#28232b}.card{position:absolute;background:#ffffffd9;border:1px solid #ddd5e0;border-radius:13px;padding:10px 13px;backdrop-filter:blur(8px)}#brand{top:13px;left:13px}#brand b{display:block;font-size:13px}#brand small{font-size:11px;opacity:.7}#hint{right:13px;top:13px;text-align:right;font-size:12px;line-height:1.5}#status{bottom:14px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#joy{display:none;position:absolute;pointer-events:auto;touch-action:none;left:max(18px,env(safe-area-inset-left));bottom:max(24px,env(safe-area-inset-bottom));width:132px;height:132px;border:1px solid #bcb0c2a0;border-radius:50%;background:#ffffff77}#stick{position:absolute;left:41px;top:41px;width:48px;height:48px;border-radius:50%;background:#8b6c8a55;border:1px solid #8b6c8a88}@media(pointer:coarse){#joy{display:block}#hint{max-width:160px;font-size:11px}}
+</style></head><body><canvas id="c"></canvas><div id="hud"><div id="brand" class="card"><b>SAYO · FIRST WORLD</b><small>3D 이동 프로토타입 v0.1</small></div><div id="hint" class="card">PC: WASD / 방향키 이동<br>마우스 드래그: 시점 회전<br>모바일: 왼쪽 패드 이동</div><div id="status" class="card">하얀 연습 월드 · 사요를 움직여 보세요</div><div id="joy"><div id="stick"></div></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const canvas=document.querySelector('#c'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xfaf9fc);scene.fog=new THREE.Fog(0xfaf9fc,28,75);
+const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,150);
+scene.add(new THREE.HemisphereLight(0xffffff,0xbeb2c0,2));const sun=new THREE.DirectionalLight(0xffffff,3);sun.position.set(-7,12,5);sun.castShadow=true;scene.add(sun);
+const M=(c,r=.8,metal=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:metal});
+const mats={white:M(0xffffff),wall:M(0xf4f1f5),black:M(0x17131c,.6),hair:M(0x211923,.35),red:M(0x9e173c,.5),skin:M(0xffdfd8),blouse:M(0xfaf6f5),sock:M(0xf4edf0),dark:M(0x302a36),shoe:M(0x100e15,.35),gold:M(0x9b7b50,.4,.4),eye:M(0xc92b58,.25)};
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),mats.white);floor.rotation.x=-Math.PI/2;floor.position.y=-.02;floor.receiveShadow=true;scene.add(floor);
+const grid=new THREE.GridHelper(100,50,0xe5dfe8,0xf0edf2);grid.position.y=.003;scene.add(grid);
+function wall(w,h,x,y,z,rot=0){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,.35),mats.wall);o.position.set(x,y,z);o.rotation.y=rot;o.castShadow=true;scene.add(o)}
+wall(44,7,0,3.5,-22);wall(44,7,0,3.5,22);wall(44,7,-22,3.5,0,Math.PI/2);wall(44,7,22,3.5,0,Math.PI/2);
+const sayo=new THREE.Group();scene.add(sayo);const model=new THREE.Group();sayo.add(model);
+function mesh(g,m,p,x,y,z,sx=1,sy=1,sz=1){let o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;p.add(o);return o}
+function ball(p,m,x,y,z,sx,sy,sz){return mesh(new THREE.SphereGeometry(1,18,12),m,p,x,y,z,sx,sy,sz)}
+function limb(p,m,a,b,r1,r2=r1){let A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A);let o=mesh(new THREE.CylinderGeometry(r2,r1,d.length(),12),m,p,(A.x+B.x)/2,(A.y+B.y)/2,(A.z+B.z)/2);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return o}
+// shoes and legs
+for(let s of [-1,1]){limb(model,s===-1?mats.sock:mats.dark,[s*.16,.68,0],[s*.19,.2,.01],.085,.065);mesh(new THREE.BoxGeometry(.2,.1,.3),mats.shoe,model,s*.19,.1,.04);mesh(new THREE.BoxGeometry(.2,.025,.3),mats.gold,model,s*.19,.15,.04)}
+// skirt
+mesh(new THREE.CylinderGeometry(.23,.48,.44,14,1,true),mats.black,model,0,1.02,0);
+mesh(new THREE.CylinderGeometry(.25,.45,.12,16,1,true),mats.red,model,0,.82,0);
+mesh(new THREE.CylinderGeometry(.22,.38,.09,16,1,true),mats.blouse,model,0,.78,0);
+for(let i=0;i<12;i++){let a=i*Math.PI/6,o=mesh(new THREE.BoxGeometry(.17,.25,.07),mats.black,model,Math.cos(a)*.37,.91,Math.sin(a)*.37);o.rotation.y=-a;o.rotation.z=i%2?.14:-.14}
+mesh(new THREE.CylinderGeometry(.16,.22,.5,12),mats.blouse,model,0,1.48,0);mesh(new THREE.CylinderGeometry(.17,.2,.22,12),mats.black,model,0,1.23,0);
+for(let i=0;i<3;i++)for(let s of [-1,1])ball(model,mats.gold,s*.09,1.26+i*.055,.16,.018,.018,.012);
+mesh(new THREE.BoxGeometry(.24,.1,.1),mats.blouse,model,0,1.76,.01);ball(model,mats.black,0,1.68,.13,.15,.07,.05);
+for(let s of [-1,1]){let bow=ball(model,mats.black,s*.12,1.68,.12,.13,.075,.035);bow.rotation.z=s*.35;ball(model,mats.blouse,s*.25,1.54,0,.12,.17,.12);limb(model,mats.blouse,[s*.25,1.55,.01],[s*.3,1.2,.14],.075,.06);ball(model,mats.skin,s*.3,1.16,.15,.06,.07,.06)}
+const head=new THREE.Group();model.add(head);head.position.set(0,1.99,.01);ball(head,mats.skin,0,0,0,.29,.34,.25);
+for(let s of [-1,1]){ball(head,M(0xfff8f7),s*.115,-.035,.222,.07,.09,.025);ball(head,mats.eye,s*.115,-.035,.246,.045,.065,.018);ball(head,M(0xffffff),s*.128,-.008,.263,.014,.018,.008)}
+// long dark fringe, covering one eye, with red streak
+for(let i=0;i<9;i++){let x=-.2+i*.045,o=mesh(new THREE.ConeGeometry(.07,.43,7),mats.hair,head,x,.18,.215,.8,1,1);o.rotation.z=(x+.04)*-.48}
+let streak=mesh(new THREE.ConeGeometry(.035,.4,7),mats.red,head,-.105,.18,.245,.75,1,1);streak.rotation.z=.12;
+ball(head,mats.hair,0,.2,-.07,.31,.36,.25);
+for(let s of [-1,1]){let lock=mesh(new THREE.ConeGeometry(.105,.98,9),mats.hair,model,s*.25,1.55,-.02,.8,1,1);lock.rotation.z=s*.12;let rl=mesh(new THREE.ConeGeometry(.035,.9,7),mats.red,model,s*.31,1.53,.045,.8,1,1);rl.rotation.z=s*.12;let bow=ball(head,mats.black,s*.24,.22,.04,.15,.09,.06);bow.rotation.z=s*.45;ball(head,mats.red,s*.25,.2,.1,.045,.045,.035)}
+let yaw=0,pitch=.18,keys={},drag=false,lx=0,ly=0;addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||e.clientX>innerWidth*.35){drag=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;let dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;yaw-=dx*.006;pitch=Math.max(-.05,Math.min(.65,pitch+dy*.003))});canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
+let jx=0,jy=0,jOn=false;const joy=document.querySelector('#joy'),stick=document.querySelector('#stick');function joyMove(e){let r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),l=Math.hypot(dx,dy),max=37;if(l>max){dx=dx/l*max;dy=dy/l*max}jx=dx/max;jy=dy/max;stick.style.transform=`translate(${dx}px,${dy}px)`}function joyEnd(){jOn=false;jx=jy=0;stick.style.transform='translate(0,0)'}joy.addEventListener('pointerdown',e=>{jOn=true;joy.setPointerCapture(e.pointerId);joyMove(e)});joy.addEventListener('pointermove',e=>{if(jOn)joyMove(e)});joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+const clock=new THREE.Clock(),status=document.querySelector('#status');
+function loop(){requestAnimationFrame(loop);let dt=Math.min(clock.getDelta(),.04),ix=0,iz=0;if(keys.w||keys.arrowup)iz-=1;if(keys.s||keys.arrowdown)iz+=1;if(keys.a||keys.arrowleft)ix-=1;if(keys.d||keys.arrowright)ix+=1;ix+=jx;iz+=jy;let mag=Math.hypot(ix,iz),moving=mag>.08;if(moving){ix/=Math.max(1,mag);iz/=Math.max(1,mag);let f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)),dir=f.multiplyScalar(-iz).add(r.multiplyScalar(ix)).normalize();sayo.position.addScaledVector(dir,dt*3.4);sayo.rotation.y=Math.atan2(dir.x,dir.z);model.position.y=Math.abs(Math.sin(performance.now()*.012))*.035}else model.position.y=THREE.MathUtils.lerp(model.position.y,0,dt*8);sayo.position.x=THREE.MathUtils.clamp(sayo.position.x,-20,20);sayo.position.z=THREE.MathUtils.clamp(sayo.position.z,-20,20);let target=new THREE.Vector3(sayo.position.x,1.35,sayo.position.z),d=6.5,cp=new THREE.Vector3(target.x+Math.sin(yaw)*d*Math.cos(pitch),target.y+2.1+Math.sin(pitch)*d,target.z+Math.cos(yaw)*d*Math.cos(pitch));camera.position.lerp(cp,1-Math.exp(-dt*5));camera.lookAt(target);status.textContent=`하얀 연습 월드 · 위치 ${sayo.position.x.toFixed(1)}, ${sayo.position.z.toFixed(1)} · ${moving?'이동 중':'대기 중'}`;renderer.render(scene,camera)}
+loop();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))});
+</script></body></html>
