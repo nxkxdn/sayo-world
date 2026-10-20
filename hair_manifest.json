@@ -1,0 +1,380 @@
+[
+  {
+    "name": "hair_01_crown",
+    "file": "hair_01_crown.png",
+    "label": "정수리 윗머리",
+    "x": 437,
+    "y": 4,
+    "width": 167,
+    "height": 146,
+    "pivot": [
+      460,
+      90
+    ],
+    "amp": 0.0028,
+    "freq": 1.0,
+    "phase": 0.3,
+    "pixels": 6535,
+    "mask_mode": "hairsoft"
+  },
+  {
+    "name": "hair_02_bangs",
+    "file": "hair_02_bangs.png",
+    "label": "앞머리 메인",
+    "x": 385,
+    "y": 15,
+    "width": 166,
+    "height": 233,
+    "pivot": [
+      460,
+      105
+    ],
+    "amp": 0.0014,
+    "freq": 1.15,
+    "phase": 1.4,
+    "pixels": 25083,
+    "mask_mode": "hairsoft"
+  },
+  {
+    "name": "hair_03_left_side",
+    "file": "hair_03_left_side.png",
+    "label": "왼쪽 옆머리 가닥",
+    "x": 322,
+    "y": 203,
+    "width": 72,
+    "height": 278,
+    "pivot": [
+      360,
+      210
+    ],
+    "amp": 0.0035,
+    "freq": 0.85,
+    "phase": 2.1,
+    "pixels": 3663,
+    "mask_mode": "hairsoft"
+  },
+  {
+    "name": "hair_04L_1",
+    "file": "hair_04L_1.png",
+    "label": "앞가닥 L · 뿌리",
+    "x": 387,
+    "y": 93,
+    "width": 62,
+    "height": 260,
+    "pivot": [
+      407,
+      95
+    ],
+    "amp": 0.0038,
+    "freq": 1.35,
+    "phase": 0.5,
+    "pixels": 3570,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_04L_2",
+    "file": "hair_04L_2.png",
+    "label": "앞가닥 L · 중간",
+    "x": 413,
+    "y": 335,
+    "width": 59,
+    "height": 203,
+    "pivot": [
+      437,
+      338
+    ],
+    "amp": 0.00589,
+    "freq": 1.4700000000000002,
+    "phase": 1.4,
+    "pixels": 4509,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_04R_1",
+    "file": "hair_04R_1.png",
+    "label": "앞가닥 R · 뿌리",
+    "x": 507,
+    "y": 89,
+    "width": 67,
+    "height": 264,
+    "pivot": [
+      528,
+      90
+    ],
+    "amp": 0.0035,
+    "freq": 1.35,
+    "phase": 2.0,
+    "pixels": 4713,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_04R_2",
+    "file": "hair_04R_2.png",
+    "label": "앞가닥 R · 중간",
+    "x": 540,
+    "y": 335,
+    "width": 47,
+    "height": 178,
+    "pivot": [
+      561,
+      338
+    ],
+    "amp": 0.005425,
+    "freq": 1.4700000000000002,
+    "phase": 2.9,
+    "pixels": 1388,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_L_outer_1",
+    "file": "hair_L_outer_1.png",
+    "label": "L_outer 긴 머리 · 뿌리",
+    "x": 332,
+    "y": 291,
+    "width": 77,
+    "height": 184,
+    "pivot": [
+      397,
+      290
+    ],
+    "amp": 0.003,
+    "freq": 0.8,
+    "phase": 0.9,
+    "pixels": 1240,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_L_outer_2",
+    "file": "hair_L_outer_2.png",
+    "label": "L_outer 긴 머리 · 중간",
+    "x": 229,
+    "y": 452,
+    "width": 119,
+    "height": 186,
+    "pivot": [
+      330,
+      455
+    ],
+    "amp": 0.009,
+    "freq": 1.02,
+    "phase": 1.7000000000000002,
+    "pixels": 777,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_L_outer_3",
+    "file": "hair_L_outer_3.png",
+    "label": "L_outer 긴 머리 · 끝",
+    "x": 177,
+    "y": 615,
+    "width": 79,
+    "height": 180,
+    "pivot": [
+      245,
+      618
+    ],
+    "amp": 0.014,
+    "freq": 1.24,
+    "phase": 2.5,
+    "pixels": 1403,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_L_inner_1",
+    "file": "hair_L_inner_1.png",
+    "label": "L_inner 긴 머리 · 뿌리",
+    "x": 350,
+    "y": 305,
+    "width": 61,
+    "height": 166,
+    "pivot": [
+      410,
+      294
+    ],
+    "amp": 0.0025,
+    "freq": 0.8,
+    "phase": 1.9,
+    "pixels": 1890,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_L_inner_2",
+    "file": "hair_L_inner_2.png",
+    "label": "L_inner 긴 머리 · 중간",
+    "x": 300,
+    "y": 448,
+    "width": 77,
+    "height": 185,
+    "pivot": [
+      355,
+      451
+    ],
+    "amp": 0.007,
+    "freq": 1.02,
+    "phase": 2.7,
+    "pixels": 1983,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_L_inner_3",
+    "file": "hair_L_inner_3.png",
+    "label": "L_inner 긴 머리 · 끝",
+    "x": 281,
+    "y": 610,
+    "width": 49,
+    "height": 200,
+    "pivot": [
+      306,
+      613
+    ],
+    "amp": 0.011,
+    "freq": 1.24,
+    "phase": 3.5,
+    "pixels": 1366,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_R_outer_1",
+    "file": "hair_R_outer_1.png",
+    "label": "R_outer 긴 머리 · 뿌리",
+    "x": 613,
+    "y": 261,
+    "width": 106,
+    "height": 189,
+    "pivot": [
+      616,
+      260
+    ],
+    "amp": 0.003,
+    "freq": 0.8,
+    "phase": 0.4,
+    "pixels": 2544,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_R_outer_2",
+    "file": "hair_R_outer_2.png",
+    "label": "R_outer 긴 머리 · 중간",
+    "x": 679,
+    "y": 427,
+    "width": 123,
+    "height": 191,
+    "pivot": [
+      705,
+      430
+    ],
+    "amp": 0.009,
+    "freq": 1.02,
+    "phase": 1.2000000000000002,
+    "pixels": 5195,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_R_outer_3",
+    "file": "hair_R_outer_3.png",
+    "label": "R_outer 긴 머리 · 끝",
+    "x": 757,
+    "y": 595,
+    "width": 89,
+    "height": 193,
+    "pivot": [
+      790,
+      598
+    ],
+    "amp": 0.014,
+    "freq": 1.24,
+    "phase": 2.0,
+    "pixels": 3594,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_R_inner_1",
+    "file": "hair_R_inner_1.png",
+    "label": "R_inner 긴 머리 · 뿌리",
+    "x": 602,
+    "y": 227,
+    "width": 80,
+    "height": 191,
+    "pivot": [
+      605,
+      225
+    ],
+    "amp": 0.0025,
+    "freq": 0.8,
+    "phase": 1.4,
+    "pixels": 3375,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_R_inner_2",
+    "file": "hair_R_inner_2.png",
+    "label": "R_inner 긴 머리 · 중간",
+    "x": 643,
+    "y": 395,
+    "width": 88,
+    "height": 203,
+    "pivot": [
+      660,
+      398
+    ],
+    "amp": 0.007,
+    "freq": 1.02,
+    "phase": 2.2,
+    "pixels": 4484,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_R_inner_3",
+    "file": "hair_R_inner_3.png",
+    "label": "R_inner 긴 머리 · 끝",
+    "x": 697,
+    "y": 575,
+    "width": 38,
+    "height": 199,
+    "pivot": [
+      711,
+      578
+    ],
+    "amp": 0.011,
+    "freq": 1.24,
+    "phase": 3.0,
+    "pixels": 738,
+    "mask_mode": "red"
+  },
+  {
+    "name": "hair_11_left_flyaway",
+    "file": "hair_11_left_flyaway.png",
+    "label": "왼쪽 잔머리",
+    "x": 316,
+    "y": 143,
+    "width": 48,
+    "height": 133,
+    "pivot": [
+      346,
+      200
+    ],
+    "amp": 0.01,
+    "freq": 1.7,
+    "phase": 0.7,
+    "pixels": 483,
+    "mask_mode": "hairsoft"
+  },
+  {
+    "name": "hair_12_right_flyaway",
+    "file": "hair_12_right_flyaway.png",
+    "label": "오른쪽 잔머리",
+    "x": 607,
+    "y": 140,
+    "width": 74,
+    "height": 160,
+    "pivot": [
+      649,
+      229
+    ],
+    "amp": 0.009,
+    "freq": 1.6,
+    "phase": 2.5,
+    "pixels": 2844,
+    "mask_mode": "hairsoft"
+  }
+]
